@@ -38,3 +38,36 @@ export const getUserWithNoConnection = async (id: string) => {
     const users = result.records.map((record) => record.get("ou").properties);
     return users as Neo4JUser[];
 };
+
+export const neo4jSwipe = async (id: string, swipe: string, userId: string) => {
+    const type = swipe === "left" ? "DISLIKE" : "LIKE";
+    await driver.executeQuery(
+        `MATCH (cu:User {applicationId: $id}), (ou:User {applicationId: $userId}) 
+         CREATE (cu)-[:${type} {createdAt: datetime()}]->(ou)`,
+        {
+            id,
+            userId,
+        }
+    );
+
+    if (type === "LIKE") {
+        const result = await driver.executeQuery(
+            `MATCH (cu:User {applicationId: $id})-[:LIKE]->(ou:User {applicationId: $userId}) 
+             WHERE (ou)-[:LIKE]->(cu) 
+             RETURN ou AS match`,
+            {
+                id,
+                userId,
+            }
+        );
+
+        const matches = result.records.map(
+            (record) => record.get("match").properties
+        );
+        return matches.length > 0;
+    }
+
+    return false;
+};
+
+// 45 - like and dislike connection between the users 

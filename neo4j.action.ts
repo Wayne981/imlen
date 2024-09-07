@@ -71,3 +71,16 @@ export const neo4jSwipe = async (id: string, swipe: string, userId: string) => {
 };
 
 // 45 - like and dislike connection between the users 
+
+export const getMatches = async (currentUserId: string) => {
+    const result = await driver.executeQuery(
+        `MATCH (cu: User { applicationId: $id })-[:LIKE]-(ou: User)-[:LIKE]->(cu) RETURN ou as match`,
+        { id: currentUserId }
+    );
+    const matches = result.records.map(
+        (record) => record.get("match").properties
+    );
+    return matches as Neo4jUser[];
+};
+
+// to list the matches 
